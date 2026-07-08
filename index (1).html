@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Bestiary Within — A Nature Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#13151d;
+    --ink-deep:#0b0c12;
+    --parchment:#ece3d2;
+    --parchment-dim:#c9bfa9;
+    --gold:#c9a24c;
+    --gold-bright:#e3bd6a;
+    --rust:#a2543b;
+    --moss:#6f7d5c;
+    --line: rgba(201,162,76,0.22);
+    --card-bg: #181b26;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(201,162,76,0.08), transparent 55%),
+      radial-gradient(ellipse at 90% 110%, rgba(111,125,92,0.10), transparent 50%),
+      var(--ink);
+    color:var(--parchment);
+    font-family:'Source Serif 4', serif;
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:48px 20px 80px;
+    line-height:1.5;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  .stage{
+    width:100%;
+    max-width:640px;
+  }
+
+  .masthead{
+    text-align:center;
+    margin-bottom:36px;
+  }
+  .masthead .eyebrow{
+    font-family:'Cormorant Garamond', serif;
+    font-style:italic;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    font-size:13px;
+    color:var(--gold);
+    opacity:0.85;
+  }
+  .masthead h1{
+    font-family:'Cormorant Garamond', serif;
+    font-weight:600;
+    font-size:clamp(34px, 6vw, 52px);
+    margin:6px 0 8px;
+    color:var(--parchment);
+    letter-spacing:0.01em;
+  }
+  .masthead p{
+    color:var(--parchment-dim);
+    font-size:16px;
+    max-width:440px;
+    margin:0 auto;
+  }
+
+  .card{
+    background:var(--card-bg);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:40px 36px;
+    position:relative;
+    box-shadow: 0 30px 60px -30px rgba(0,0,0,0.6);
+  }
+  .card::before{
+    content:"";
+    position:absolute; inset:8px;
+    border:1px solid rgba(201,162,76,0.12);
+    border-radius:3px;
+    pointer-events:none;
+  }
+
+  @media (max-width:520px){
+    .card{padding:28px 20px;}
+  }
+
+  /* ---------- Progress vine ---------- */
+  .vine{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:0;
+    margin-bottom:34px;
+    user-select:none;
+  }
+  .vine .seg{
+    display:flex;
+    align-items:center;
+  }
+  .node{
+    width:9px; height:9px;
+    border-radius:50%;
+    background:var(--ink-deep);
+    border:1.5px solid var(--line);
+    transition: all 0.4s ease;
+    flex:0 0 auto;
+  }
+  .node.filled{
+    background:var(--gold);
+    border-color:var(--gold-bright);
+    box-shadow:0 0 8px rgba(227,189,106,0.6);
+  }
+  .node.current{
+    background:var(--ink-deep);
+    border-color:var(--gold-bright);
+    transform:scale(1.5);
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(227,189,106,0.45);}
+    50%{box-shadow:0 0 0 5px rgba(227,189,106,0);}
+  }
+  .twig{
+    width:18px; height:1px;
+    background:var(--line);
+  }
+  .twig.filled{ background:var(--gold); opacity:0.6;}
+
+  /* ---------- Screens ---------- */
+  .screen{ display:none; }
+  .screen.active{ display:block; animation:rise 0.5s ease both; }
+  @keyframes rise{
+    from{ opacity:0; transform:translateY(10px);}
+    to{ opacity:1; transform:translateY(0);}
+  }
+
+  .q-number{
+    font-family:'Cormorant Garamond', serif;
+    font-style:italic;
+    color:var(--gold);
+    font-size:14px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  .q-text{
+    font-family:'Cormorant Garamond', serif;
+    font-weight:600;
+    font-size:clamp(22px, 4vw, 27px);
+    margin:0 0 26px;
+    color:var(--parchment);
+  }
+
+  /* Scale question (1-5 disagree/agree) */
+  .scale-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .scale-btn{
+    flex:1;
+    aspect-ratio:1/1;
+    border-radius:50%;
+    border:1.5px solid var(--line);
+    background:transparent;
+    color:var(--parchment-dim);
+    font-family:'Cormorant Garamond', serif;
+    font-size:19px;
+    cursor:pointer;
+    transition:all 0.2s ease;
+  }
+  .scale-btn:hover{
+    border-color:var(--gold);
+    color:var(--gold-bright);
+    transform:translateY(-2px);
+  }
+  .scale-labels{
+    display:flex;
+    justify-content:space-between;
+    font-size:12px;
+    color:var(--parchment-dim);
+    letter-spacing:0.03em;
+    margin-top:2px;
+  }
+
+  /* Option question (custom text choices) */
+  .opt-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .opt-btn{
+    text-align:left;
+    background:rgba(201,162,76,0.03);
+    border:1.5px solid var(--line);
+    color:var(--parchment);
+    padding:14px 18px;
+    border-radius:4px;
+    font-family:'Source Serif 4', serif;
+    font-size:16px;
+    cursor:pointer;
+    transition:all 0.2s ease;
+  }
+  .opt-btn:hover{
+    border-color:var(--gold);
+    background:rgba(201,162,76,0.09);
+    transform:translateX(3px);
+  }
+
+  /* Buttons general */
+  .btn-primary{
+    display:inline-block;
+    background:var(--gold);
+    color:var(--ink-deep);
+    border:none;
+    padding:14px 34px;
+    border-radius:4px;
+    font-family:'Cormorant Garamond', serif;
+    font-weight:600;
+    font-size:18px;
+    letter-spacing:0.03em;
+    cursor:pointer;
+    transition:all 0.2s ease;
+  }
+  .btn-primary:hover{
+    background:var(--gold-bright);
+    transform:translateY(-1px);
+  }
+  .btn-ghost{
+    display:inline-block;
+    background:transparent;
+    color:var(--gold);
+    border:1.5px solid var(--line);
+    padding:12px 28px;
+    border-radius:4px;
+    font-family:'Cormorant Garamond', serif;
+    font-weight:600;
+    font-size:16px;
+    cursor:pointer;
+    margin-top:14px;
+  }
+  .btn-ghost:hover{ border-color:var(--gold); }
+
+  .center{ text-align:center; }
+
+  /* ---------- Result ---------- */
+  .emblem-wrap{
+    display:flex;
+    justify-content:center;
+    margin-bottom:8px;
+  }
+  .emblem-ring{
+    width:150px; height:150px;
+    border-radius:50%;
+    border:1.5px solid var(--gold);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    animation: seal 0.7s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  .emblem-ring::before{
+    content:"";
+    position:absolute; inset:-8px;
+    border-radius:50%;
+    border:1px solid rgba(201,162,76,0.3);
+  }
+  @keyframes seal{
+    from{ opacity:0; transform:scale(0.6) rotate(-8deg);}
+    to{ opacity:1; transform:scale(1) rotate(0deg);}
+  }
+  .emblem-ring svg{ width:86px; height:86px; }
+
+  .result-name{
+    font-family:'Cormorant Garamond', serif;
+    font-weight:600;
+    font-size:clamp(32px, 6vw, 44px);
+    text-align:center;
+    margin:18px 0 4px;
+    color:var(--parchment);
+  }
+  .result-sub{
+    text-align:center;
+    font-style:italic;
+    font-family:'Cormorant Garamond', serif;
+    color:var(--gold);
+    font-size:16px;
+    margin-bottom:22px;
+  }
+  .result-desc{
+    text-align:center;
+    color:var(--parchment-dim);
+    font-size:17px;
+    max-width:480px;
+    margin:0 auto 26px;
+  }
+
+  .affinities{
+    margin:26px 0 8px;
+    border-top:1px solid var(--line);
+    padding-top:22px;
+  }
+  .affinities .label{
+    font-family:'Cormorant Garamond', serif;
+    font-style:italic;
+    color:var(--gold);
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    margin-bottom:14px;
+    text-align:center;
+  }
+  .aff-row{
+    display:grid;
+    grid-template-columns:90px 1fr 30px;
+    align-items:center;
+    gap:12px;
+    margin-bottom:8px;
+    font-size:14px;
+    color:var(--parchment-dim);
+  }
+  .aff-track{
+    height:5px;
+    background:rgba(201,162,76,0.1);
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .aff-fill{
+    height:100%;
+    background:linear-gradient(90deg, var(--gold), var(--gold-bright));
+    width:0%;
+    transition:width 1s cubic-bezier(.2,.8,.3,1);
+  }
+
+  footer{
+    text-align:center;
+    margin-top:26px;
+    font-size:12px;
+    color:var(--parchment-dim);
+    opacity:0.6;
+    letter-spacing:0.04em;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="masthead">
+    <div class="eyebrow">A Field Guide To Your Own Nature</div>
+    <h1>The Bestiary Within</h1>
+    <p>Answer honestly. By the last page, one creature in the old book will have your name in the margin.</p>
+  </div>
+
+  <div class="card">
+
+    <!-- Progress vine, hidden on intro/result -->
+    <div class="vine" id="vine"></div>
+
+    <!-- INTRO -->
+    <div class="screen active" id="screen-intro">
+      <div class="q-number">Before We Begin</div>
+      <p class="q-text" style="font-size:20px;">Ten questions. For most, rate yourself from <strong>1 — strongly disagree</strong> to <strong>5 — strongly agree</strong>. A few ask you to choose the option that sounds most like you.</p>
+      <div class="center">
+        <button class="btn-primary" onclick="startQuiz()">Open the Book</button>
+      </div>
+    </div>
+
+    <!-- QUESTION -->
+    <div class="screen" id="screen-question">
+      <div class="q-number" id="q-number">Question 1 of 10</div>
+      <div class="q-text" id="q-text"></div>
+      <div id="q-body"></div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="screen" id="screen-result">
+      <div class="emblem-wrap"><div class="emblem-ring" id="emblem-ring"></div></div>
+      <div class="result-name" id="result-name"></div>
+      <div class="result-sub" id="result-sub"></div>
+      <div class="result-desc" id="result-desc"></div>
+
+      <div class="affinities">
+        <div class="label">Traces of the Other Creatures in You</div>
+        <div id="aff-rows"></div>
+      </div>
+
+      <div class="center">
+        <button class="btn-ghost" onclick="restartQuiz()">Take the Quiz Again</button>
+      </div>
+    </div>
+
+  </div>
+  <footer>The Bestiary Within · a small self-portrait, ten questions long</footer>
+</div>
+
+<script>
+/* ---------------------------------------------------------
+   Faithful port of the original Python scoring logic:
+   every question adds points to exactly one animal based on
+   the value chosen (1→Dragon+5, 2→Lion+4, 3→Wolf+3,
+   4→Deer+2, 5→Mockingbird+1). The final verdict is decided
+   by the TOTAL of all points summed together, exactly as in
+   the source script.
+---------------------------------------------------------- */
+
+const ANIMAL_FOR_VALUE = {1:"Dragon", 2:"Lion", 3:"Wolf", 4:"Deer", 5:"Mockingbird"};
+const POINTS_FOR_VALUE = {1:5, 2:4, 3:3, 4:2, 5:1};
+
+const questions = [
+  { type:"scale", text:"How impulsive are you?" },
+  { type:"scale", text:"Do you enjoy socializing and meeting new people?" },
+  { type:"scale", text:"Do you like to take charge in a group?" },
+  { type:"scale", text:"Do you prefer working alone rather than in a team?" },
+  { type:"scale", text:"Are you curious and playful most of the time?" },
+  { type:"options", text:"What do you want to be when you grow up?", options:[
+      "A CEO", "A Model", "A White collar criminal", "A Scientist", "An Artist"
+  ]},
+  { type:"scale", text:"Are you easily impressed?" },
+  { type:"options", text:"If someone brings cake into a room, what do you do?", options:[
+      "Jump on the cake and eat everything",
+      "Request the biggest slice or nothing",
+      "Steal the cake when no one is looking",
+      "Admire the patterns and structure of the cake",
+      "Say “No, calories!” and walk away"
+  ]},
+  { type:"options", text:"If you hear your jam in a club, what's your move?", options:[
+      "Sit down and observe the dancers",
+      "Start singing and dancing with your friends",
+      "Start dancing with your friends but not singing",
+      "Start singing with your friends but not dancing",
+      "Start singing and/or dancing by yourself"
+  ]},
+  { type:"options", text:"If you could have a superpower for one day, what would it be?", options:[
+      "Flight (like Supergirl)",
+      "Super strength (like Mr. Thunderman)",
+      "Invisibility and stealth (like Shadowcat)",
+      "Speak with nature (like Snow White)",
+      "Illusionist (like Dr. Strange)"
+  ]}
+];
+
+const animalInfo = {
+  Dragon: {
+    sub:"Fearless. Ambitious. Ruleless.",
+    desc:"You are fearless, ambitious and ready to take charge of anything you set your mind to. You don't follow rules. You are a true dragon, and you will always be there for those you love.",
+    color:"var(--rust)",
+    icon: `<svg viewBox="0 0 100 100" fill="none" stroke="var(--rust)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 70 Q15 50 30 40 Q25 25 40 22 Q45 12 55 18 Q62 10 68 20 Q80 18 78 32 Q88 36 82 48 Q88 58 76 60 Q78 72 65 70 Q60 82 48 74 Q38 84 32 72 Q22 78 20 70 Z"/>
+      <circle cx="58" cy="34" r="2.4" fill="var(--rust)" stroke="none"/>
+      <path d="M70 24 L78 14 M74 28 L86 22"/>
+      <path d="M30 55 Q22 60 18 72"/>
+    </svg>`
+  },
+  Lion: {
+    sub:"Loyal. Commanding. Steady.",
+    desc:"You are a natural born leader with a strong sense of self. Many people look to you for guidance, and you don't disappoint. You are very loyal to your friends and family, and you will do anything to protect them.",
+    color:"var(--gold)",
+    icon: `<svg viewBox="0 0 100 100" fill="none" stroke="var(--gold-bright)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="50" cy="50" r="16"/>
+      <path d="M50 22 C58 22 58 32 50 34 C42 32 42 22 50 22 Z"/>
+      <path d="M50 78 C58 78 58 68 50 66 C42 68 42 78 50 78 Z"/>
+      <path d="M22 50 C22 42 32 42 34 50 C32 58 22 58 22 50 Z"/>
+      <path d="M78 50 C78 42 68 42 66 50 C68 58 78 58 78 50 Z"/>
+      <path d="M30 30 C36 34 38 40 40 40"/>
+      <path d="M70 30 C64 34 62 40 60 40"/>
+      <path d="M30 70 C36 66 38 60 40 60"/>
+      <path d="M70 70 C64 66 62 60 60 60"/>
+      <circle cx="45" cy="48" r="1.6" fill="var(--gold-bright)" stroke="none"/>
+      <circle cx="55" cy="48" r="1.6" fill="var(--gold-bright)" stroke="none"/>
+    </svg>`
+  },
+  Wolf: {
+    sub:"Clever. Independent. Watchful.",
+    desc:"You are a clever, independent and protective animal. Things seem to disappear when you come around. You think you're mysterious — and you are a true wolf who will always be there for those you love.",
+    color:"var(--moss)",
+    icon: `<svg viewBox="0 0 100 100" fill="none" stroke="var(--moss)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M50 20 L34 42 L30 70 L42 62 L50 76 L58 62 L70 70 L66 42 Z"/>
+      <path d="M40 44 L46 52 L50 44 L54 52 L60 44"/>
+      <circle cx="42" cy="48" r="1.8" fill="var(--moss)" stroke="none"/>
+      <circle cx="58" cy="48" r="1.8" fill="var(--moss)" stroke="none"/>
+    </svg>`
+  },
+  Deer: {
+    sub:"Gentle. Empathetic. Graceful.",
+    desc:"You are a gentle, kind and graceful animal. You are very empathetic and love to help others. You are easily impressed and love to be around beauty — a true deer who will always be there for those you love.",
+    color:"var(--parchment-dim)",
+    icon: `<svg viewBox="0 0 100 100" fill="none" stroke="var(--parchment)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="50" cy="58" rx="14" ry="18"/>
+      <path d="M40 20 Q30 14 26 22 Q34 24 36 30"/>
+      <path d="M40 20 Q36 30 42 36"/>
+      <path d="M60 20 Q70 14 74 22 Q66 24 64 30"/>
+      <path d="M60 20 Q64 30 58 36"/>
+      <circle cx="45" cy="54" r="1.6" fill="var(--parchment)" stroke="none"/>
+      <circle cx="55" cy="54" r="1.6" fill="var(--parchment)" stroke="none"/>
+    </svg>`
+  },
+  Mockingbird: {
+    sub:"Playful. Curious. Bright.",
+    desc:"You are a playful, curious and creative animal. You are very social and love to be around others. You bring joy, mischief and laughter wherever you go — a true mockingbird who will always be there for those you love.",
+    color:"var(--gold)",
+    icon: `<svg viewBox="0 0 100 100" fill="none" stroke="var(--gold-bright)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M28 58 Q30 40 50 36 Q54 28 64 30 Q62 34 60 38 Q76 40 74 54 Q70 50 64 50 Q66 60 58 66 Q60 72 54 74 Q48 68 48 62 Q38 66 30 60 Z"/>
+      <circle cx="60" cy="38" r="1.6" fill="var(--gold-bright)" stroke="none"/>
+      <path d="M50 70 L44 78 M56 70 L54 80"/>
+    </svg>`
+  }
+};
+
+let currentQuestion = 0;
+let answers = [];
+let animalPoints = {Dragon:0, Lion:0, Wolf:0, Deer:0, Mockingbird:0};
+
+function buildVine(){
+  const vine = document.getElementById('vine');
+  vine.innerHTML = '';
+  for(let i=0;i<questions.length;i++){
+    const seg = document.createElement('div');
+    seg.className = 'seg';
+    const node = document.createElement('div');
+    node.className = 'node';
+    node.id = 'node-'+i;
+    seg.appendChild(node);
+    if(i < questions.length-1){
+      const twig = document.createElement('div');
+      twig.className = 'twig';
+      twig.id = 'twig-'+i;
+      seg.appendChild(twig);
+    }
+    vine.appendChild(seg);
+  }
+}
+buildVine();
+
+function updateVine(){
+  for(let i=0;i<questions.length;i++){
+    const node = document.getElementById('node-'+i);
+    node.classList.remove('filled','current');
+    if(i < currentQuestion) node.classList.add('filled');
+    else if(i === currentQuestion) node.classList.add('current');
+    if(i < questions.length-1){
+      const twig = document.getElementById('twig-'+i);
+      twig.classList.toggle('filled', i < currentQuestion);
+    }
+  }
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('vine').style.display = (id==='screen-question') ? 'flex' : 'none';
+}
+
+function startQuiz(){
+  currentQuestion = 0;
+  answers = [];
+  animalPoints = {Dragon:0, Lion:0, Wolf:0, Deer:0, Mockingbird:0};
+  showScreen('screen-question');
+  renderQuestion();
+}
+
+function renderQuestion(){
+  updateVine();
+  const q = questions[currentQuestion];
+  document.getElementById('q-number').textContent = `Question ${currentQuestion+1} of ${questions.length}`;
+  document.getElementById('q-text').textContent = q.text;
+  const body = document.getElementById('q-body');
+  body.innerHTML = '';
+
+  if(q.type === 'scale'){
+    const row = document.createElement('div');
+    row.className = 'scale-row';
+    for(let v=1; v<=5; v++){
+      const btn = document.createElement('button');
+      btn.className = 'scale-btn';
+      btn.textContent = v;
+      btn.onclick = () => answerQuestion(v);
+      row.appendChild(btn);
+    }
+    body.appendChild(row);
+    const labels = document.createElement('div');
+    labels.className = 'scale-labels';
+    labels.innerHTML = '<span>Strongly disagree</span><span>Strongly agree</span>';
+    body.appendChild(labels);
+  } else {
+    const list = document.createElement('div');
+    list.className = 'opt-list';
+    q.options.forEach((opt, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'opt-btn';
+      btn.textContent = opt;
+      btn.onclick = () => answerQuestion(idx+1);
+      list.appendChild(btn);
+    });
+    body.appendChild(list);
+  }
+}
+
+function answerQuestion(value){
+  answers.push(value);
+  animalPoints[ANIMAL_FOR_VALUE[value]] += POINTS_FOR_VALUE[value];
+  currentQuestion++;
+  if(currentQuestion >= questions.length){
+    showResult();
+  } else {
+    renderQuestion();
+  }
+}
+
+function classify(totalScore){
+  if(totalScore > 40 && totalScore <= 50) return "Dragon";
+  if(totalScore > 30 && totalScore <= 40) return "Lion";
+  if(totalScore > 20 && totalScore <= 30) return "Wolf";
+  if(totalScore > 10 && totalScore <= 20) return "Deer";
+  if(totalScore === 10) return "Mockingbird";
+  return "Deer"; // safety fallback, unreachable given 10 questions
+}
+
+function showResult(){
+  const totalScore = Object.values(animalPoints).reduce((a,b)=>a+b,0);
+  const animal = classify(totalScore);
+  const info = animalInfo[animal];
+
+  document.getElementById('emblem-ring').innerHTML = info.icon;
+  document.getElementById('emblem-ring').style.borderColor = info.color;
+  document.getElementById('result-name').textContent = "You are the " + animal;
+  document.getElementById('result-sub').textContent = info.sub;
+  document.getElementById('result-desc').textContent = info.desc;
+
+  const affRows = document.getElementById('aff-rows');
+  affRows.innerHTML = '';
+  const maxPts = Math.max(1, ...Object.values(animalPoints));
+  Object.keys(animalPoints).forEach(name=>{
+    const row = document.createElement('div');
+    row.className = 'aff-row';
+    row.innerHTML = `<span>${name}</span><div class="aff-track"><div class="aff-fill" id="fill-${name}"></div></div><span>${animalPoints[name]}</span>`;
+    affRows.appendChild(row);
+  });
+
+  showScreen('screen-result');
+
+  requestAnimationFrame(()=>{
+    Object.keys(animalPoints).forEach(name=>{
+      const pct = Math.round((animalPoints[name]/maxPts)*100);
+      const el = document.getElementById('fill-'+name);
+      if(el) el.style.width = pct + '%';
+    });
+  });
+}
+
+function restartQuiz(){
+  startQuiz();
+}
+</script>
+</body>
+</html>
